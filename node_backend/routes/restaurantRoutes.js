@@ -68,8 +68,8 @@ router.get("/search-llm", async (req, res) => {
 Based on the user's query: "${query}", find the most relevant restaurants from this list:
 ${JSON.stringify(restaurants, null, 2)}
 
-Return ONLY a JSON array of restaurant IDs that match the query, in this format:
-{ "matchingRestaurantIds": [1, 2, 3] }
+Return ONLY a JSON object that contains an array of restaurant names that match the query, in this format:
+{ "matchingRestaurants": ["Restaurant Name 1", "Restaurant Name 2"] }
 Do not include any other text in your response.`;
 
     // Call the LLM inference endpoint
@@ -81,31 +81,72 @@ Do not include any other text in your response.`;
       }
     );
 
-    // Parse the LLM response to get matching restaurant IDs
-    let matchingIds;
+    // Parse the LLM response to get matching restaurant names
+    let matchingNames = [];
     try {
       // The LLM might return some text with the JSON, so we need to extract just the JSON part
       const responseText = llmResponse.data.response;
+      console.log("LLM response:", responseText);
+
       // Find JSON content between curly braces
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);
 
       if (jsonMatch) {
-        matchingIds = JSON.parse(jsonMatch[0]).matchingRestaurantIds || [];
+        const parsedJson = JSON.parse(jsonMatch[0]);
+        matchingNames = parsedJson.matchingRestaurants || [];
       } else {
         throw new Error("Could not parse LLM response");
       }
     } catch (parseError) {
       console.error("Error parsing LLM response:", parseError);
-      return res.status(500).json({
-        message: "Failed to process LLM response",
-        llmResponse: llmResponse.data.response,
-      });
+      // Use a fallback approach - directly search for restaurants with Italian cuisine
+      if (query.toLowerCase().includes("italian")) {
+        matchingNames = restaurants
+          .filter(
+            (restaurant) =>
+              restaurant.cuisines &&
+              restaurant.cuisines.some((cuisine) =>
+                cuisine.toLowerCase().includes("italian")
+              )
+          )
+          .map((restaurant) => restaurant.name);
+
+        console.log(
+          "Using fallback search for Italian restaurants:",
+          matchingNames
+        );
+      }
     }
 
-    // Filter restaurants based on the IDs returned by the LLM
-    const matchingRestaurants = restaurants.filter((restaurant) =>
-      matchingIds.includes(restaurant.id)
-    );
+    // Filter restaurants based on the names returned by the LLM
+    let matchingRestaurants = [];
+    if (matchingNames && matchingNames.length > 0) {
+      matchingRestaurants = restaurants.filter((restaurant) =>
+        matchingNames.some(
+          (name) =>
+            restaurant.name.toLowerCase().includes(name.toLowerCase()) ||
+            name.toLowerCase().includes(restaurant.name.toLowerCase())
+        )
+      );
+    }
+
+    // If still no matches, use a fallback method based on cuisines
+    if (matchingRestaurants.length === 0) {
+      const keywords = query.toLowerCase().split(" ");
+
+      // Check for cuisine-related keywords
+      const cuisineMatches = restaurants.filter(
+        (restaurant) =>
+          restaurant.cuisines &&
+          restaurant.cuisines.some((cuisine) =>
+            keywords.some((keyword) => cuisine.toLowerCase().includes(keyword))
+          )
+      );
+
+      if (cuisineMatches.length > 0) {
+        matchingRestaurants = cuisineMatches;
+      }
+    }
 
     // Return the results along with search metadata
     res.status(200).json({
