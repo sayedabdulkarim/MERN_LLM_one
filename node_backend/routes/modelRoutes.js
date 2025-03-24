@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const { exec } = require("child_process");
+const axios = require("axios"); // Add axios for HTTP requests
 
 // Get all local ollama models
 router.get("/ollama", (req, res) => {
@@ -55,5 +56,40 @@ router.get("/ollama", (req, res) => {
     }
   });
 });
+
+// Endpoint for model inference
+router.post("/inference", async (req, res) => {
+  try {
+    const { prompt, model } = req.body;
+
+    if (!prompt || !model) {
+      return res.status(400).json({
+        message: "Prompt and model name are required",
+      });
+    }
+
+    // Call Ollama API (assuming it's running on default localhost:11434)
+    const response = await axios.post("http://localhost:11434/api/generate", {
+      model: model,
+      prompt: prompt,
+      stream: false,
+    });
+
+    // Return the response from Ollama
+    return res.status(200).json({
+      model: model,
+      prompt: prompt,
+      response: response.data.response,
+    });
+  } catch (error) {
+    console.error("Error during model inference:", error);
+    return res.status(500).json({
+      message: "Failed to get model inference",
+      error: error.message,
+    });
+  }
+});
+
+///
 
 module.exports = router;
