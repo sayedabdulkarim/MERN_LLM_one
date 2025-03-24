@@ -18,6 +18,7 @@ app.use(express.urlencoded({ extended: false }));
 
 // Routes
 app.use("/api/users", require("./routes/userRoutes"));
+app.use("/api/restaurants", require("./routes/restaurantRoutes"));
 
 // Basic route
 app.get("/", (req, res) => {
