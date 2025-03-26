@@ -100,22 +100,22 @@ Do not include any other text in your response.`;
     } catch (parseError) {
       console.error("Error parsing LLM response:", parseError);
       // Use a fallback approach - directly search for restaurants with Italian cuisine
-      if (query.toLowerCase().includes("italian")) {
-        matchingNames = restaurants
-          .filter(
-            (restaurant) =>
-              restaurant.cuisines &&
-              restaurant.cuisines.some((cuisine) =>
-                cuisine.toLowerCase().includes("italian")
-              )
-          )
-          .map((restaurant) => restaurant.name);
+      // if (query.toLowerCase().includes("italian")) {
+      //   matchingNames = restaurants
+      //     .filter(
+      //       (restaurant) =>
+      //         restaurant.cuisines &&
+      //         restaurant.cuisines.some((cuisine) =>
+      //           cuisine.toLowerCase().includes("italian")
+      //         )
+      //     )
+      //     .map((restaurant) => restaurant.name);
 
-        console.log(
-          "Using fallback search for Italian restaurants:",
-          matchingNames
-        );
-      }
+      //   console.log(
+      //     "Using fallback search for Italian restaurants:",
+      //     matchingNames
+      //   );
+      // }
     }
 
     // Filter restaurants based on the names returned by the LLM
